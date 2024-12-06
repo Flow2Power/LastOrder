@@ -9,29 +9,39 @@ struct Index {
   private calender:i18n.Calendar = i18n.getCalendar("zh-Hans","gregory");
   //页面信息显示相关的状态变量
   @State year: number = 2024 ;
-  @State months: number[] = [1,2,3,4,5,6,7,8,9,10,11,12];
-  @State days:number[] = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31];
+  @State months: number[] = [0,1,2,3,4,5,6,7,8,9,10,11,12,13];
+  @State days:Array<number[]>=[];
   @State HeightChange:number = 50;
-  @State index:number = 0;
+  @State index:number = 1;
   aboutToAppear(): void {
     console.info('模拟器Index aboutToAppear')
     this.calender.setTime(new Date())
-    this.days=this.GetDays(this.year,this.months[this.index])
+    this.days = []
+    this.months.forEach(item=>{
+      this.days.push(this.GetDays(this.year,item))
+    })
   }
   //天数构建
-  GetDays(year:number, month:number):number[]{
-    let days:number[]=[];
-    //获取当前月份天数
-    let date = new Date(year, month-1, 0);
-    for(let i=0;i<date.getDay();i++){
-      days.push(0)
+  //天数构建
+  GetDays(year: number, month: number): number[] {
+    let days: number[] = [];
+    if (month == 0 || month == 13) {
+      return days;
     }
-    for(let i=1;i<=date.getDate();i++){
-      days.push(i)
+    // 获取当前月份第一天
+    let firstDayOfMonth = new Date(year, month - 1, 1);
+    // 获取当前月份第一天为星期几
+    for (let i = 0; i < firstDayOfMonth.getDay(); i++) {
+      days.push(0);
     }
-    console.info('模拟器天数构建'+year+'年'+month+'月'+days.length+'天')
-    return days
+    // 获取当前月份的总天数
+    let lastDayOfMonth = new Date(year, month, 0).getDate();
+    for (let i = 1; i <= lastDayOfMonth; i++) {
+      days.push(i);
+    }
+    return days;
   }
+
   //构建顶部导航栏
   @Builder topBarBuilder() {
     Column(){
@@ -58,23 +68,24 @@ struct Index {
       .width('100%')
       .alignItems(VerticalAlign.Center)
       .justifyContent(FlexAlign.SpaceBetween)
-      Row(){
+      Grid(){
         ForEach(this.weekdays, (item:string)=>{
-          Column(){
-            Text(item)
-              .fontSize(15)
-              .fontColor(Color.White)
-              .fontWeight(FontWeight.Bold)
-              .textAlign(TextAlign.Center)
+          GridItem(){
+            Column(){
+              Text(item)
+                .fontSize(20)
+                .fontColor(Color.White)
+                .fontWeight(FontWeight.Bold)
+                .textAlign(TextAlign.Center)
+            }
+            .alignItems(HorizontalAlign.Center)
+            .justifyContent(FlexAlign.Center)
           }
-          .alignItems(HorizontalAlign.Center)
-          .justifyContent(FlexAlign.Center)
-          .width(50)
         })
       }
       .width('100%')
-      .alignItems(VerticalAlign.Center)
-      .justifyContent(FlexAlign.Start)
+      .columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr 1fr')
+      .margin({ top: '5%'})
     }
     .width('95%')
     .height('10%')
@@ -86,33 +97,34 @@ struct Index {
     .padding({ top: '2%', bottom: '2%', left: '2%', right: '2%'})
   }
   //日历构建
-  @Builder MyCalendarBuilder() {
+  @Builder MyCalendarBuilder(index:number) {
     Column(){
       Grid(){
-        ForEach(this.days, (item:number)=>{
+        ForEach(this.days[index], (item:number)=>{
           GridItem(){
             Column(){
               Text(`${item==0?'':item}`)
-                .fontSize(15)
+                .fontSize(20)
                 .fontColor(Color.White)
                 .fontWeight(FontWeight.Bold)
                 .textAlign(TextAlign.Start)
             }
             .alignItems(HorizontalAlign.Center)
             .justifyContent(FlexAlign.Start)
-            .width(50)
             .height('20%')
           }
         })
       }
       .width('100%')
       .height('90%')
-      .margin({ left: '4%' })
+      .columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr 1fr')
+      .rowsTemplate('1fr 1fr 1fr 1fr 1fr 1fr')
       Row(){
         SymbolGlyph($r(this.HeightChange==50?'sys.symbol.chevron_down':'sys.symbol.chevron_up'))
           .fontSize(30)
           .fontColor([Color.White])
           .fontWeight(FontWeight.Bold)
+          .opacity((index!=0&&index!=13)?1:0)
       }
       .alignItems(VerticalAlign.Bottom)
       .justifyContent(FlexAlign.Center)
@@ -123,7 +135,7 @@ struct Index {
     .width('95%')
     .height(`${this.HeightChange}%`)
     .margin({ top: '5%'})
-    .padding({ top: '2%'})
+    .padding({ top: '2%', bottom: '2%', left: '2%', right: '2%'})
     .borderRadius(5)
     .backgroundColor('#55737272')
     .alignItems(HorizontalAlign.Center)
@@ -137,6 +149,7 @@ struct Index {
         })
       }))
   }
+  //日程构建
   @Builder MyScheduleBuilder(){
     Column(){
 
@@ -145,38 +158,62 @@ struct Index {
     .height('90%')
     .borderRadius(5)
     .margin({ top: `${this.HeightChange/10}%`})
+    .padding({ top: '2%', bottom: '2%', left: '2%', right: '2%'})
     .backgroundColor('#55737272')
     .alignItems(HorizontalAlign.Center)
     .justifyContent(FlexAlign.Center)
   }
-  @Builder TabContentBuilder(){
-    this.MyCalendarBuilder()
-    this.MyScheduleBuilder()
+  //首页
+  @Builder TabBuilder(){
+    Tabs({ barPosition: BarPosition.Start,controller: this.tabController,index:1}){
+      ForEach(this.months, (item:number)=>{
+        TabContent(){
+          this.MyCalendarBuilder(item)
+          this.MyScheduleBuilder()
+        }
+        .align(Alignment.Top)
+      })
+    }
+    .width('100%')
+    .height('100%')
+    .barHeight(0)
+    .fadingEdge(false)
+    .barMode(BarMode.Scrollable)
+    .barPosition(BarPosition.End)
+    .onChange((index: number)=>{
+      this.index = index
+      console.info(`模拟器切换到第${index}个Tab`)
+      if(index==13||index==0){
+        this.year = this.year + (index==13?1:-1)
+        this.aboutToAppear()
+        this.tabController.changeIndex(index==13?1:12)
+      }
+    })
+  }
+  //tabBar构建
+  @Builder tabBuilder(index:number) {
+    SymbolGlyph($r('sys.symbol.calendar'))
+      .fontSize(30)
+      .fontColor([Color.White])
+      .fontWeight(FontWeight.Bold)
   }
   build() {
     Column(){
       this.topBarBuilder()
-      Tabs({ barPosition: BarPosition.Start,controller: this.tabController}){
-        ForEach(this.months, (item:number)=>{
-          TabContent(){
-            this.TabContentBuilder()
-          }
-          .align(Alignment.Top)
-        })
+      Tabs(){
+        TabContent(){
+          this.TabBuilder()
+        }
+        .tabBar(this.tabBuilder(0))
+        .width('100%')
+        .height('100%')
       }
       .width('100%')
-      .height('90%')
-      .fadingEdge(false)
+      .height('85%')
+      .barWidth('100%')
+      .barHeight('5%')
       .barMode(BarMode.Scrollable)
       .barPosition(BarPosition.End)
-      .onChange((index: number)=>{
-        this.index = index
-        console.info(`模拟器切换到第${index}个Tab`)
-        if(index==12){
-          this.tabController.changeIndex(0)
-        }
-        console.info('模拟器'+this.months)
-      })
     }
     .width('100%')
     .height('100%')
