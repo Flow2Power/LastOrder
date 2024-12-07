@@ -1,13 +1,14 @@
 import { router } from '@kit.ArkUI';
+import UserCalendarManager from '../Model/UserCalendarManager';
 
 @Entry
 @Component
 struct Splash {
   aboutToAppear(): void {
     console.log('模拟器Splash aboutToAppear');
-    setTimeout(()=> {
+    UserCalendarManager.initCalendar(getContext(this)).then(()=>{
       router.replaceUrl({ url: 'pages/Index'});
-    }, 1000)
+    })
   }
   build() {
     Column(){
