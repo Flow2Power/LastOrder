@@ -1,33 +1,59 @@
 import { calendarManager } from '@kit.CalendarKit';
 import { router } from '@kit.ArkUI';
+import UserCalendarManager from '../Model/UserCalendarManager';
+import { i18n } from '@kit.LocalizationKit';
+import { Holidays, SolarTerms } from '../Model/DataInterface';
+import StoreManager from '../Model/StoreManager';
+import NetworkDataFetcher from '../Model/NetworkDataFetcher';
 
 @Entry
 @Component
 struct Index {
   //页面信息显示相关的变量
   private weekdays:string[] = ['日','一','二','三','四','五','六'];
+  private LunarMonths = ['正月','二月','三月','四月','五月','六月','七月','八月','九月','十月','冬月','腊月']
+  private lunarDays = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
   private tabController: TabsController = new TabsController()
-  private CurrentDate: Date = new Date()
-  private ChoosePre:number = 0
+  @StorageLink('CurrentDate')private CurrentDate: Date = new Date()
+  @StorageLink('holidays') private holidays: Holidays = {}
+  @StorageLink('solarTerms') private solarTerms: SolarTerms = {}
+  private currentDate: Date = new Date()
+  private calendars: Array<calendarManager.Event> = [];
+  private calendar : i18n.Calendar = i18n.getCalendar("zh-Hans", "chinese");
   //页面信息显示相关的状态变量
-  @State year: number = 2024 ;
+  @State year: number = this.CurrentDate.getFullYear() ;
   @State months: number[] = [0,1,2,3,4,5,6,7,8,9,10,11,12,13];
   @State days:Array<number[]>=[];
+  @State LunarDays:Array<string[]>=[];
+  @State calendarsList: Array<calendarManager.Event> = [];
   @State daysIsChoose:number[]=[]
   @State HeightChange:number = 50;
   @State index:number = this.CurrentDate.getMonth()+1;
   @State choose:number = 0;
+  @State dayDifference:number = 0
+  @State ChoosePre:number = 0
   aboutToAppear(): void {
     console.info('模拟器Index aboutToAppear')
+    this.currentDate.setHours(0,0,0,0)
     this.days = []
+    this.LunarDays = []
     this.months.forEach(item=>{
       this.days.push(this.GetDays(this.year,item))
+      this.LunarDays.push(this.GetLunarDays(this.year,item))
     })
     this.daysIsChoose = new Array(32).fill(0)
-    console.info(`模拟器测试CurrentDate：年:${this.CurrentDate.getFullYear()}月:${this.CurrentDate.getMonth()}日:${this.CurrentDate.getDate()}`)
+    this.ChoosePre=this.year==this.CurrentDate.getFullYear()&&this.CurrentDate.getMonth()+1==this.months[this.index]?this.CurrentDate.getDate():1
+    this.daysIsChoose[this.ChoosePre]=1
+  }
+  onPageShow(): void {
+    console.info('模拟器Index onPageShow')
+    UserCalendarManager.queryEvent(this.year).then((result: Array<calendarManager.Event>)=>{
+      this.calendars = result
+      this.calendarsList = this.QueryCalendar(this.ChoosePre)
+    })
   }
   //天数构建
-  GetDays(year: number, month: number): number[] {
+  private GetDays(year: number, month: number): number[] {
     let days: number[] = [];
     if (month == 0 || month == 13) {
       return days;
@@ -45,9 +71,58 @@ struct Index {
     }
     return days;
   }
+  //农历天数构建
+  private GetLunarDays(year: number, month: number): string[] {
+    let LunarDays: string[] = [];
+    if (month == 0 || month == 13) {
+      return LunarDays;
+    }
+    LunarDays.push(' ');
+    // 获取当前月份的总天数
+    let lastDayOfMonth = new Date(year, month, 0).getDate();
+    for (let i = 1; i <= lastDayOfMonth; i++) {
+      LunarDays.push(this.LunarDateToText(year, month, i));
+    }
+    return LunarDays;
+  }
+  //日期转农历称呼
+  private LunarDateToText(year: number, month: number, day: number):string{
+    this.calendar.setTime(new Date(year, month-1, day));
+    let Month = this.calendar.get("month")
+    let Day = this.calendar.get("date")
+    return this.LunarMonths[Month]+this.lunarDays[Day-1]
+  }
   //判断是否为当天
-  IsToday(mouth:number, day:number): boolean{
+  private IsToday(mouth:number, day:number): boolean{
     return day==this.CurrentDate.getDate()&&mouth==this.CurrentDate.getMonth()+1&&this.year==this.CurrentDate.getFullYear()
+  }
+  //补零
+  private addZero(num: number): string {
+    return num < 10 ? '0' + num.toString() : num.toString()
+  }
+  //查询对应日期的日程
+  private QueryCalendar(day:number): Array<calendarManager.Event>{
+    let result:Array<calendarManager.Event> = []
+    let startTime = new Date(`${this.year}-${this.addZero(this.months[this.index])}-${this.addZero(day)}T00:00:00.000Z`).getTime()
+    let endTime = new Date(`${this.year}-${this.addZero(this.months[this.index])}-${this.addZero(day)}T23:59:59.000Z`).getTime()
+    result = this.calendars.filter(item => item.startTime >= startTime && item.endTime <= endTime);
+    return result
+  }
+  //判断是否为节假日
+  private IsHoliday(day:number): string{
+    let date = this.year.toString()+'-'+this.addZero(this.months[this.index])+'-'+this.addZero(day)
+    if(this.holidays[date]==undefined){
+      return ''
+    }
+    return this.holidays[date].isOffDay?'休':'班';
+  }
+  //判断是否为节气
+  private IsSolarTerms(day:number): string{
+    let date = this.months[this.index].toString()+'月'+day.toString()+'日'
+    if(this.solarTerms[date]==undefined){
+      return ''
+    }
+    return this.solarTerms[date].name
   }
   //构建顶部导航栏
   @Builder topBarBuilder() {
@@ -63,6 +138,10 @@ struct Index {
             .fontSize(25)
             .fontColor([Color.White])
             .fontWeight(FontWeight.Bold)
+            .onClick(()=>{
+              console.info('模拟器点击搜索')
+              router.pushUrl({url: 'pages/SearchEvent'})
+            })
           SymbolGlyph($r('sys.symbol.dot_grid_2x2'))
             .fontSize(25)
             .fontColor([Color.White])
@@ -117,9 +196,15 @@ struct Index {
                   .fontColor(this.IsToday(index,item)? '#ff1d72f1' :Color.White)
                   .fontWeight(FontWeight.Bold)
                   .textAlign(TextAlign.Center)
-                Text(`${item==0?'':'休'}`)
+                Text(`${item==0?'':this.LunarDays[index][item]}`)
                   .fontSize(10)
-                  .fontColor('#ff2760b5')
+                  .fontColor(this.IsToday(index,item)? '#ff1d72f1' :Color.White)
+                  .fontWeight(FontWeight.Bold)
+                  .textAlign(TextAlign.Center)
+                  .margin({ top: '60%' })
+                Text(`${item==0?'':this.IsHoliday(item)}`)
+                  .fontSize(10)
+                  .fontColor(this.IsHoliday(item)=='休'?'#ff2760b5':'#ffe95151')
                   .fontWeight(FontWeight.Bold)
                   .textAlign(TextAlign.Center)
                   .margin({ top: '-20%',left: '70%' })
@@ -133,10 +218,34 @@ struct Index {
                 this.daysIsChoose[this.ChoosePre]=0
                 this.daysIsChoose[item]=1
                 this.ChoosePre=item
+                this.calendarsList = this.QueryCalendar(item)
+                let date = new Date(this.year,this.months[this.index]-1,item)
+                date.setHours(0, 0, 0, 0); // 设置时间为00:00:00.000
+                this.dayDifference = Math.round(date.getTime() - this.currentDate.getTime()) / (1000 * 60 * 60 * 24);
               })
+              Text(`${item==0?'':this.IsSolarTerms(item)}`)
+                .fontSize(15)
+                .height(20)
+                .fontColor('#ff223e66')
+                .fontWeight(FontWeight.Bold)
+                .textAlign(TextAlign.Center)
+                .opacity(this.IsSolarTerms(item)!=''&&this.HeightChange==100?1:0)
+                .border({ width: this.IsSolarTerms(item)!=''&&this.HeightChange==100?1:0, color: Color.White})
+                .borderRadius(5)
+              Text(`${item==0?'':this.QueryCalendar(item).length==0?'':this.QueryCalendar(item)[0].title}`)
+                .fontSize(15)
+                .height(20)
+                .width(40)
+                .fontColor('#ff723518')
+                .fontWeight(FontWeight.Bold)
+                .textAlign(TextAlign.Center)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .opacity(item!=0&&this.HeightChange==100&&this.QueryCalendar(item).length!=0?1:0)
+                .border({ width: item!=0&&this.HeightChange==100&&this.QueryCalendar(item).length!=0?1:0, color: Color.White })
+                .borderRadius(5)
             }
             .alignItems(HorizontalAlign.Center)
-            .justifyContent(FlexAlign.Start)
+            .justifyContent(FlexAlign.SpaceBetween)
           }
           .height('15%')
         })
@@ -177,19 +286,137 @@ struct Index {
         })
       }))
   }
+  //日程Item构建
+  @Builder ScheduleItem(item:calendarManager.Event){
+    Row(){
+      Stack(){
+        Column(){
+          Text(`${new Date(item.startTime).getHours()}:${this.addZero(new Date(item.startTime).getMinutes())}`)
+            .fontSize(15)
+            .fontColor(Color.White)
+            .textAlign(TextAlign.Center)
+          Text(`${new Date(item.endTime).getHours()}:${this.addZero(new Date(item.endTime).getMinutes())}`)
+            .fontSize(15)
+            .fontColor(Color.White)
+            .textAlign(TextAlign.Center)
+        }
+        .width('100%')
+        .height('100%')
+        .alignItems(HorizontalAlign.Center)
+        .justifyContent(FlexAlign.SpaceBetween)
+        .opacity(item.isAllDay?0:1)
+        Text('全天')
+          .fontSize(15)
+          .fontColor(Color.White)
+          .textAlign(TextAlign.Center)
+          .opacity(item.isAllDay?1:0)
+      }
+      .width('15%')
+      .height('80%')
+      .padding({ top: '3%', bottom: '3%' })
+      .alignContent(Alignment.Center)
+      Image($r('app.media.line'))
+        .width(50)
+        .height(50)
+        .fillColor('#ff1d72f1')
+      Marquee({
+        start: true,
+        step: -1,
+        loop: 50,
+        fromStart: true,
+        src:"【"+item.title+"】"+item.description
+      })
+        .width('70%')
+        .height('80%')
+        .fontSize(20)
+        .fontColor(Color.White)
+        .fontWeight(FontWeight.Bold)
+    }
+    .width('95%')
+    .height('90%')
+    .borderRadius(10)
+    .backgroundColor('#55737272')
+    .alignItems(VerticalAlign.Center)
+    .justifyContent(FlexAlign.Start)
+    .bindMenu([
+      {
+        value: '删除日程',
+        action: ()=>{
+          UserCalendarManager.deleteEvent(item).then(()=>{
+            this.calendarsList = this.calendarsList.filter((e:calendarManager.Event)=>{
+              return e.id!=item.id
+            })
+          })
+        }
+      }
+    ])
+  }
   //日程构建
   @Builder MyScheduleBuilder(){
     Column(){
-
+      Row(){
+        Text(`${this.dayDifference==0?'今':Math.abs(this.dayDifference)}天${this.dayDifference==0?'':this.dayDifference>0?'后':'前'}`)
+          .fontSize(20)
+          .fontColor(Color.White)
+          .width('20%')
+          .height('100%')
+          .textAlign(TextAlign.Start)
+        Text(`农历${this.LunarDays[this.months[this.index]][this.ChoosePre]}`)
+          .fontSize(20)
+          .fontColor(Color.White)
+          .height('100%')
+          .textAlign(TextAlign.Start)
+          .opacity(0.8)
+      }
+      .width('100%')
+      .height('10%')
+      .alignItems(VerticalAlign.Center)
+      .justifyContent(FlexAlign.Start)
+      .padding({ left: '2%', right: '2%'})
+      .border({
+        width: { bottom: 1 },
+        color: { bottom: Color.Gray },
+      })
+      Stack(){
+        Column(){
+          SymbolGlyph($r('sys.symbol.calendar_fill'))
+            .fontSize(100)
+            .fontColor([Color.Gray])
+            .fontWeight(FontWeight.Bold)
+          Text('没有日程')
+            .fontSize(15)
+            .fontColor(Color.White)
+            .textAlign(TextAlign.Center)
+        }
+        .alignItems(HorizontalAlign.Center)
+        .justifyContent(FlexAlign.Center)
+        .opacity(this.calendarsList.length==0?0.8:0)
+        List(){
+          ForEach(this.calendarsList, (item:calendarManager.Event)=>{
+            ListItem(){
+              this.ScheduleItem(item)
+            }
+            .width('100%')
+            .height(100)
+          })
+        }
+        .scrollBar(BarState.Off)
+        .width('100%')
+        .height('100%')
+        .alignListItem(ListItemAlign.Start)
+        .opacity(this.calendarsList.length==0?0:1)
+      }
+      .width('100%')
+      .height('90%')
     }
-    .width('100%')
-    .height('90%')
+    .width('104%')
+    .height('89%')
     .borderRadius(5)
-    .margin({ top: `${this.HeightChange/10}%`})
+    .margin({ top: `${this.HeightChange/6}%`})
     .padding({ top: '2%', bottom: '2%', left: '2%', right: '2%'})
     .backgroundColor('#55737272')
     .alignItems(HorizontalAlign.Center)
-    .justifyContent(FlexAlign.Center)
+    .justifyContent(FlexAlign.SpaceBetween)
   }
   //日历
   @Builder CalendarBuilder(){
@@ -210,19 +437,76 @@ struct Index {
     .barPosition(BarPosition.End)
     .onChange((index: number)=>{
       this.index = index
-      this.daysIsChoose=new Array(32).fill(0);
+      this.calendarsList = this.QueryCalendar(this.ChoosePre)
+      let date = new Date(this.year,this.months[this.index]-1,this.ChoosePre)
+      date.setHours(0, 0, 0, 0); // 设置时间为00:00:00.000
+      this.dayDifference = Math.round(date.getTime() - this.currentDate.getTime()) / (1000 * 60 * 60 * 24);
       console.info(`模拟器切换到第${index}个Tab`)
       if(index==13||index==0){
         this.year = this.year + (index==13?1:-1)
-        this.aboutToAppear()
-        this.tabController.changeIndex(index==13?1:12)
+        StoreManager.getHolidays(this.year, getContext(this)).then(async holidays=>{
+          if(Object.keys(holidays).length == 0){
+            console.info('模拟器从网络获取节假日信息,年份为：' + this.year)
+            this.holidays = await NetworkDataFetcher.getHolidays(this.year)
+            await StoreManager.addHolidays(holidays, getContext(this))
+          }else{
+            this.holidays = holidays
+            console.info('模拟器从本地获取节假日信息,年份为：' + this.year)
+          }
+          StoreManager.getTwentyFourSolarTerms(this.year, getContext(this)).then(async solarTerms=>{
+            if(Object.keys(solarTerms).length == 0){
+              console.info('模拟器从网络获取二十四节气信息,年份为：' + this.year)
+              this.solarTerms = await NetworkDataFetcher.getTwentyFourSolarTerms(this.year)
+              await StoreManager.addTwentyFourSolarTerms(solarTerms, getContext(this))
+            }else{
+              this.solarTerms = solarTerms
+              console.info('模拟器从本地获取二十四节气信息,年份为：'+ this.year)
+            }
+            this.aboutToAppear()
+            this.tabController.changeIndex(index==13?1:12)
+          })
+        })
       }
     })
   }
   //一天
   @Builder OneDayBuilder(){
     Column(){
-
+      Row(){
+        Text(`${this.months[this.index]}月${this.ChoosePre}日`)
+          .fontSize(20)
+          .fontColor(Color.White)
+          .height('100%')
+          .textAlign(TextAlign.Start)
+        Text(`农历${this.LunarDays[this.months[this.index]][this.ChoosePre]}`)
+          .fontSize(20)
+          .fontColor(Color.White)
+          .height('100%')
+          .textAlign(TextAlign.Start)
+          .opacity(0.8)
+      }
+      .width('100%')
+      .height('5%')
+      .alignItems(VerticalAlign.Center)
+      .justifyContent(FlexAlign.SpaceBetween)
+      .padding({ left: '2%', right: '2%'})
+      .border({
+        width: { bottom: 1 },
+        color: { bottom: Color.Gray },
+      })
+      List(){
+        ForEach(this.calendarsList, (item:calendarManager.Event)=>{
+          ListItem(){
+            this.ScheduleItem(item)
+          }
+          .width('100%')
+          .height(100)
+        })
+      }
+      .scrollBar(BarState.Off)
+      .width('100%')
+      .height('90%')
+      .alignListItem(ListItemAlign.Start)
     }
     .width('95%')
     .height('90%')
@@ -231,7 +515,7 @@ struct Index {
     .padding({ top: '2%', bottom: '2%', left: '2%', right: '2%'})
     .backgroundColor('#55737272')
     .alignItems(HorizontalAlign.Center)
-    .justifyContent(FlexAlign.Center)
+    .justifyContent(FlexAlign.Start)
   }
   //待办事项
   @Builder TodoBuilder(){

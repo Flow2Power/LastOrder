@@ -78,5 +78,30 @@ export class UserCalendarManager{
       console.error(`模拟器添加日程失败，错误码为：${error.code}，错误信息为：${error.message}`);
     }
   }
+  //查询日程
+  static async queryEvent(year:number):Promise<Array<calendarManager.Event>>{
+    let result: Array<calendarManager.Event> = [];
+    let startTime = new Date(`${year}-01-01T00:00:00.000Z`);
+    let endTime = new Date(`${year}-12-31T23:59:59.000Z`);
+    let filter = calendarManager.EventFilter.filterByTime(startTime.getTime(), endTime.getTime());
+    try {
+      result = await UserCalendarManager.calendar?.getEvents(filter) as Array<calendarManager.Event>;
+      console.info(`模拟器查询日程成功，查询到${result.length}条日程`);
+    }catch (err){
+      let error: BusinessError = err as BusinessError;
+      console.error(`模拟器查询日程失败，错误码为：${error.code}，错误信息为：${error.message}`);
+    }
+    return result;
+  }
+  //删除日程
+  static async deleteEvent(event: calendarManager.Event){
+    try{
+      await UserCalendarManager.calendar?.deleteEvent(event.id)
+      console.info(`模拟器删除日程成功，日程ID为：${event.id}`);
+    }catch (err){
+      let error: BusinessError = err as BusinessError;
+      console.error(`模拟器删除日程失败，错误码为：${error.code}，错误信息为：${error.message}`);
+    }
+  }
 }
 export default UserCalendarManager;
