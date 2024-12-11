@@ -1,5 +1,4 @@
 import { router } from '@kit.ArkUI';
-import AIWebSocket from '../Model/AIWebSocket';
 import { Holidays, SolarTerms, ToDoItemsInfo } from '../Model/DataInterface';
 import NetworkDataFetcher from '../Model/NetworkDataFetcher';
 import PreferencesManager from '../Model/PreferencesManager';
