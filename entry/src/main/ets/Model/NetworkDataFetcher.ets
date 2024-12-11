@@ -11,21 +11,21 @@ export class NetworkDataFetcher {
   //创建通信会话对象
   private static session = rcp.createSession();
   //文心一言
-  private static API_Key = '7rNZ9QD9gkM0csjJlcK9LX3p'
-  private static API_Secret = '5gp8b6EoWXheXxhVOeoHbx1wZVvCaeLy'
-  private static Access_token = '24.029a3eca45b18278c7dc0ad2719d8b82.2592000.1736432026.282335-116620596'
+  private static API_Key = ''
+  private static API_Secret = ''
+  private static Access_token = ''
   //讯飞星火
   private static headersMax:rcp.ResponseHeaders = {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer NLhLLIqdRUltNPpZaZXg:JTTtnxmxkRPFiqBrdgHA'
+    'Authorization': 'Bearer '
   }
   private static headersPro:rcp.ResponseHeaders = {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer OhAwPryzQLgZvGeJaina:YiFCpbIJfPmmpvKzTQjd'
+    'Authorization': 'Bearer '
   }
   private static headers4_Ultra:rcp.ResponseHeaders = {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer rPWPodGtUSwyseqQbHFb:VPIkPgKrpmifQqOYBEDh'
+    'Authorization': 'Bearer '
   }
   private static SessionMax = rcp.createSession({headers: NetworkDataFetcher.headersMax});
   private static SessionPro = rcp.createSession({headers: NetworkDataFetcher.headersPro});
