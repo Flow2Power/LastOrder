@@ -44,7 +44,6 @@ export class NetworkDataFetcher {
       let error:BusinessError = new err as BusinessError;
       console.error(`模拟器网络获取节假日信息失败,错误码为：${error.code}，错误信息为：${error.message}`)
     }
-    ;
     return holidays;
   }
   //二十四节气信息获取

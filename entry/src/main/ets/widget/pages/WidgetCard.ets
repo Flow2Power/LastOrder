@@ -1,7 +1,7 @@
 @Entry
 @Component
 struct WidgetCard {
-  @LocalStorageProp('TodoItemList') TodoItemList:string[] = ['a','b','c','d','e','f','g','h']
+  @LocalStorageProp('TodoItemList') TodoItemList:string[] = []
   @LocalStorageProp('backgroundNum')  private backgroundNum: number = 1
   build() {
     Column(){
