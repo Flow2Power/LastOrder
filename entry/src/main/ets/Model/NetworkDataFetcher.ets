@@ -86,7 +86,7 @@ export class NetworkDataFetcher {
       ],
       system: '你是日历软件的日程管理助手'
     }
-    requestBody.system = system == '' ? '你是日历软件的日程管理助手' : system
+    requestBody.system = system == '' ? '你是基于ERNIE4.0的日历软件的日程管理助手' : system
     let requestContent: rcp.RequestContent = requestBody
     console.info('模拟器发送信息为:'+JSON.stringify(requestContent))
     try{
@@ -115,7 +115,7 @@ export class NetworkDataFetcher {
       ],
       system: '你是日历软件的日程管理助手'
     }
-    requestBody.system = system == '' ? '你是日历软件的日程管理助手' : system
+    requestBody.system = system == '' ? '你是基于ERNIE 4.0 Turbo的日历软件的日程管理助手' : system
     let requestContent: rcp.RequestContent = requestBody
     console.info('模拟器发送信息为:'+JSON.stringify(requestContent))
     try{
@@ -144,7 +144,7 @@ export class NetworkDataFetcher {
       ],
       system: '你是日历软件的日程管理助手'
     }
-    requestBody.system = system == '' ? '你是日历软件的日程管理助手' : system
+    requestBody.system = system == '' ? '你是基于ERNIE 3.5的日历软件的日程管理助手' : system
     let requestContent: rcp.RequestContent = requestBody
     console.info('模拟器发送信息为:'+JSON.stringify(requestContent))
     try{
@@ -173,7 +173,7 @@ export class NetworkDataFetcher {
       ],
       system: '你是日历软件的日程管理助手'
     }
-    requestBody.system = system == '' ? '你是日历软件的日程管理助手' : system
+    requestBody.system = system == '' ? '你是基于ERNIE Speed的日历软件的日程管理助手' : system
     let requestContent: rcp.RequestContent = requestBody
     console.info('模拟器发送信息为:'+JSON.stringify(requestContent))
     try{
@@ -202,7 +202,7 @@ export class NetworkDataFetcher {
       ],
       system: '你是日历软件的日程管理助手'
     }
-    requestBody.system = system == '' ? '你是日历软件的日程管理助手' : system
+    requestBody.system = system == '' ? '你是基于ERNIE Lite的日历软件的日程管理助手' : system
     let requestContent: rcp.RequestContent = requestBody
     console.info('模拟器发送信息为:'+JSON.stringify(requestContent))
     try{
@@ -236,7 +236,7 @@ export class NetworkDataFetcher {
         }
       ],
     }
-    requestBody.messages[0].content = system == '' ? '你是日历软件的日程管理助手' : system
+    requestBody.messages[0].content = system == '' ? '你是基于Spark Max的日历软件的日程管理助手' : system
     let requestContent: rcp.RequestContent = requestBody
     try{
       let responseBody = await NetworkDataFetcher.SessionMax.post(`https://spark-api-open.xf-yun.com/v1/chat/completions`,requestContent)
@@ -269,7 +269,7 @@ export class NetworkDataFetcher {
         }
       ],
     }
-    requestBody.messages[0].content = system == '' ? '你是日历软件的日程管理助手' : system
+    requestBody.messages[0].content = system == '' ? '你是基于Spark Pro的日历软件的日程管理助手' : system
     let requestContent: rcp.RequestContent = requestBody
     try{
       let responseBody = await NetworkDataFetcher.SessionPro.post(`https://spark-api-open.xf-yun.com/v1/chat/completions`,requestContent)
@@ -302,7 +302,7 @@ export class NetworkDataFetcher {
         }
       ],
     }
-    requestBody.messages[0].content = system == '' ? '你是日历软件的日程管理助手' : system
+    requestBody.messages[0].content = system == '' ? '你是基于Spark4.0 Ultra的日历软件的日程管理助手' : system
     let requestContent: rcp.RequestContent = requestBody
     try{
       let responseBody = await NetworkDataFetcher.Session4_Ultra.post(`https://spark-api-open.xf-yun.com/v1/chat/completions`,requestContent)

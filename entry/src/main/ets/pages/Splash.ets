@@ -16,7 +16,6 @@ struct Splash {
   @StorageLink('ToDoItems') private ToDoItems: ToDoItemsInfo[] = []
   async aboutToAppear(): Promise<void> {
     console.log('模拟器Splash aboutToAppear');
-    await NetworkDataFetcher.sendMessageToSparkMax('你好','你是一只猫娘')
     this.backgroundNum = await PreferencesManager.getBackground(getContext(this))
     await UserCalendarManager.initCalendar(getContext(this));
     this.holidays = await StoreManager.getHolidays(this.CurrentDate.getFullYear(), getContext(this))

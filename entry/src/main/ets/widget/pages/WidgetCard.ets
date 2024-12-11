@@ -43,7 +43,7 @@ struct WidgetCard {
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
                 .maxLines(1)
                 .border({
-                  width: { bottom: 0.5 },
+                  width: { bottom: 0.8 },
                   color: { bottom: Color.Gray },
                 })
             }
@@ -54,12 +54,12 @@ struct WidgetCard {
             .justifyContent(FlexAlign.SpaceBetween)
           }
           .width('95%')
-          .height('20%')
+          .height('30%')
           .padding({top: '2%', bottom: '2%'})
         })
       }
       .width('100%')
-      .height('75%')
+      .height('80%')
       .margin({top: '2%'})
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.None)

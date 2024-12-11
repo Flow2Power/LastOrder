@@ -135,6 +135,24 @@ struct AIChat {
           this.scrollerForScroll.scrollEdge(Edge.Bottom)
         })
         break
+      case 5:
+        NetworkDataFetcher.sendMessageToSparkPro(message.text,this.System).then(response=>{
+          this.MessageList.push(response)
+          this.scrollerForScroll.scrollEdge(Edge.Bottom)
+        })
+        break
+      case 6:
+        NetworkDataFetcher.sendMessageToSparkMax(message.text,this.System).then(response=>{
+          this.MessageList.push(response)
+          this.scrollerForScroll.scrollEdge(Edge.Bottom)
+        })
+        break
+      case 7:
+        NetworkDataFetcher.sendMessageToSpark4_Ultra(message.text,this.System).then(response=>{
+          this.MessageList.push(response)
+          this.scrollerForScroll.scrollEdge(Edge.Bottom)
+        })
+        break
     }
   }
   @Builder topBarBuilder() {
@@ -266,6 +284,54 @@ struct AIChat {
               this.SendMessage(message)
               promptAction.showToast({
                 message: 'ERNIE-Lite启用',
+                duration: 2000
+              })
+            }
+          },
+          {
+            value: 'Spark-Pro',
+            action: ()=>{
+              this.robotChoose = 5
+              this.MessageList = []
+              let message: ChatMessage = {
+                text:'你好',
+                isSelf: 1
+              }
+              this.SendMessage(message)
+              promptAction.showToast({
+                message: 'Spark-Pro启用',
+                duration: 2000
+              })
+            }
+          },
+          {
+            value: 'Spark-Max',
+            action: ()=>{
+              this.robotChoose = 6
+              this.MessageList = []
+              let message: ChatMessage = {
+                text:'你好',
+                isSelf: 1
+              }
+              this.SendMessage(message)
+              promptAction.showToast({
+                message: 'Spark-Max启用',
+                duration: 2000
+              })
+            }
+          },
+          {
+            value: 'Spark-4-Ultra',
+            action: ()=>{
+              this.robotChoose = 7
+              this.MessageList = []
+              let message: ChatMessage = {
+                text:'你好',
+                isSelf: 1
+              }
+              this.SendMessage(message)
+              promptAction.showToast({
+                message: 'Spark-4-Ultra启用',
                 duration: 2000
               })
             }
