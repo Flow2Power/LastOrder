@@ -1,10 +1,11 @@
-import { router } from '@kit.ArkUI'
+import { promptAction, router } from '@kit.ArkUI'
 import { calendarManager } from '@kit.CalendarKit'
 import UserCalendarManager from '../Model/UserCalendarManager'
 
 @Entry
 @Component
 struct AddEvent {
+  @StorageLink('backgroundNum')  private backgroundNum: number = 1
   @State private title:string = ''
   @State private content:string = ''
   @State private StartTime: Date = new Date();
@@ -57,6 +58,10 @@ struct AddEvent {
         .fontWeight(FontWeight.Bold)
         .onClick(()=>{
           this.addEvent();
+          promptAction.showToast({
+            message: '日程添加成功',
+            duration: 2000
+          })
         })
     }
     .width('95%')
@@ -157,7 +162,7 @@ struct AddEvent {
               .fontWeight(FontWeight.Bold)
               .textAlign(TextAlign.Center)
             Text(this.isAllDay ? `${this.StartTime.getMonth()}月${this.StartTime.getDate()}日` :`${this.StartTime.getHours()}:${this.addZero(this.StartTime.getMinutes())}`)
-              .fontSize(25)
+              .fontSize(22)
               .fontColor(Color.White)
               .fontWeight(FontWeight.Bold)
               .textAlign(TextAlign.Center)
@@ -217,7 +222,7 @@ struct AddEvent {
               .fontWeight(FontWeight.Bold)
               .textAlign(TextAlign.Center)
             Text(this.isAllDay? `${this.EndTime.getMonth()}月${this.EndTime.getDate()}日`:`${this.EndTime.getHours()}:${this.addZero(this.EndTime.getMinutes())}`)
-              .fontSize(25)
+              .fontSize(22)
               .fontColor(Color.White)
               .fontWeight(FontWeight.Bold)
               .textAlign(TextAlign.Center)
@@ -359,7 +364,7 @@ struct AddEvent {
     }
     .width('100%')
     .height('100%')
-    .backgroundImage($r('app.media.MyBackground3'))
+    .backgroundImage($r(`app.media.MyBackground${this.backgroundNum}`))
     .backgroundImageSize(ImageSize.Cover)
     .backgroundImagePosition(Alignment.Center)
     .align(Alignment.Top)

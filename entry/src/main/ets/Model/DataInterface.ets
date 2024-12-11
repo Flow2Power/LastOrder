@@ -35,3 +35,75 @@ export interface SolarTermsInfo extends ValuesBucket {
 export type SolarTerms = Record<string, SolarTermsInfo>;
 // 日程信息接口
 export type Events = Record<string, string>;
+//待办事项数据接口
+export interface ToDoItemsInfo extends ValuesBucket {
+  id:number|null; // 数据库主键ID
+  content: string;
+  IsDid: number;
+}
+//卡片信息接口
+export interface CardData {
+  'TodoItemList': string[];
+  'backgroundNum': number
+}
+//聊天信息接口
+export interface ChatMessage {
+  text: string;
+  isSelf: number;
+}
+//AI信息接口
+//ERNIE-4.0-8K
+//响应接口
+export interface ChatCompletionResponse {
+  id: string;
+  object: string;
+  created: number;
+  result: string;
+  is_truncated: boolean;
+  need_clear_history: boolean;
+  finish_reason: string;
+  usage: Usage;
+}
+export interface Usage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+//请求接口
+export interface ChatRequest {
+  messages: Message[];
+  system: string;
+}
+export interface Message {
+  role: string;
+  content: string;
+}
+
+// //讯飞星火
+// 对话请求接口
+// export interface Message {
+//   role: string; // 消息角色，例如 "system" 或 "user"
+//   content: string; // 消息内容
+// }
+// export interface ChatRequest {
+//   model: string; // 模型名称
+//   user: string; // 用户唯一ID
+//   messages: Message[]; // 消息数组
+// }
+// //讯飞星火对话响应接口
+// export interface Choice {
+//   message: Message; // 消息对象
+//   index: number; // 选择索引
+// }
+// export interface Usage {
+//   prompt_tokens: number; // 提示词使用的token数量
+//   completion_tokens: number; // 完成内容使用的token数量
+//   total_tokens: number; // 总共使用的token数量
+// }
+// export interface ChatResponse {
+//   code: number; // 响应代码
+//   message: string; // 响应消息
+//   sid: string; // 会话ID
+//   choices: Choice[]; // 选择数组
+//   usage: Usage; // 使用情况
+// }

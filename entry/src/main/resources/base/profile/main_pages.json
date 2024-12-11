@@ -3,6 +3,8 @@
     "pages/Index",
     "pages/Splash",
     "pages/AddEvent",
-    "pages/SearchEvent"
+    "pages/Search",
+    "pages/Background",
+    "pages/AIChat"
   ]
 }

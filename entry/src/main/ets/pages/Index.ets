@@ -1,15 +1,125 @@
 import { calendarManager } from '@kit.CalendarKit';
-import { router } from '@kit.ArkUI';
+import { promptAction, router } from '@kit.ArkUI';
 import UserCalendarManager from '../Model/UserCalendarManager';
 import { i18n } from '@kit.LocalizationKit';
-import { Holidays, SolarTerms } from '../Model/DataInterface';
+import { CardData, Holidays, SolarTerms, ToDoItemsInfo } from '../Model/DataInterface';
 import StoreManager from '../Model/StoreManager';
 import NetworkDataFetcher from '../Model/NetworkDataFetcher';
+import PreferencesManager from '../Model/PreferencesManager';
+import { formBindingData, formProvider } from '@kit.FormKit';
+import { BusinessError } from '@kit.BasicServicesKit';
 
+//构建文本输入弹窗
+@CustomDialog
+@Component
+struct CustomDialogExample {
+  @Link textValue: string
+  @Link ToDoItems: ToDoItemsInfo[]
+  @Link todoList: ToDoItemsInfo[]
+  @Link doneList: ToDoItemsInfo[]
+  @Link backgroundNum: number
+  controller?: CustomDialogController
+  cancel: () => void = () => {}
+  confirm: () => void = () => {}
+  build() {
+    Row() {
+      TextInput({ placeholder: '待办事项', text: this.textValue })
+        .height('80%')
+        .width('85%')
+        .placeholderFont({ size: 20, weight: FontWeight.Bold })
+        .placeholderColor(Color.Gray)
+        .fontSize(20)
+        .fontColor(Color.Gray)
+        .onChange((value: string) => {
+          this.textValue = value
+        })
+      SymbolGlyph($r('sys.symbol.checkmark_circle'))
+        .fontSize(40)
+        .fontColor([Color.Gray])
+        .fontWeight(FontWeight.Bold)
+        .onClick(() => {
+          if (this.controller != undefined) {
+            if (this.textValue != '') {
+              StoreManager.addToDoItemsInfo({
+                id:null,
+                content:this.textValue,
+                IsDid:0
+              } as ToDoItemsInfo, getContext(this)).then(async ()=>{
+                this.ToDoItems = await StoreManager.getToDoItemsInfo(getContext(this))
+                this.todoList = this.ToDoItems.filter(item => item.IsDid === 0);
+                this.doneList = this.ToDoItems.filter(item => item.IsDid === 1);
+                let formData: CardData = {
+                  TodoItemList: this.todoList.map(item => item.content),
+                  backgroundNum: this.backgroundNum
+                }
+                let bindData = formBindingData.createFormBindingData(formData);
+                let formId = await PreferencesManager.getFormId(getContext(this))
+                formProvider.updateForm(formId, bindData).then(() => {
+                  console.log('模拟器卡片Card updated successfully.');
+                }).catch((error: BusinessError) => {
+                  console.error(`模拟器卡片Failed to update card: code is ${error.code},message is ${error.message}`);
+                });
+                promptAction.showToast({
+                  message: '待办事项添加成功',
+                  duration: 2000
+                })
+                this.textValue = ''
+                this.controller?.close()
+                this.confirm()
+              })
+            }else{
+              this.textValue = ''
+              this.controller.close()
+              this.confirm()
+            }
+          }
+        })
+    }
+    .width('100%')
+    .height('10%')
+    .alignItems(VerticalAlign.Center)
+    .justifyContent(FlexAlign.SpaceBetween)
+    .padding({ left: 20, right: 20})
+    .borderRadius(10)
+    .backgroundColor('#55737272')
+  }
+}
 @Entry
 @Component
 struct Index {
+  @StorageLink('backgroundNum')  private backgroundNum: number = 1
+  @State textValue: string = ''
+  @StorageLink('ToDoItems') private ToDoItems: ToDoItemsInfo[] = []
+  @State todoList: ToDoItemsInfo[] = []
+  @State doneList: ToDoItemsInfo[] = []
   //页面信息显示相关的变量
+  dialogController: CustomDialogController | null = new CustomDialogController({
+    builder: CustomDialogExample({
+      cancel: ()=> {},
+      confirm: ()=> {},
+      textValue: $textValue,
+      ToDoItems: this.ToDoItems,
+      todoList: this.todoList,
+      doneList: this.doneList,
+      backgroundNum: this.backgroundNum
+    }),
+    autoCancel: true,
+    onWillDismiss:(dismissDialogAction: DismissDialogAction)=> {
+      console.info("reason=" + JSON.stringify(dismissDialogAction.reason))
+      console.log("dialog onWillDismiss")
+      if (dismissDialogAction.reason == DismissReason.PRESS_BACK) {
+        dismissDialogAction.dismiss()
+      }
+      if (dismissDialogAction.reason == DismissReason.TOUCH_OUTSIDE) {
+        dismissDialogAction.dismiss()
+      }
+    },
+    alignment: DialogAlignment.Bottom,
+    offset: { dx: 0, dy: -20 },
+    gridCount: 4,
+    customStyle: false,
+    cornerRadius: 10,
+  })
   private weekdays:string[] = ['日','一','二','三','四','五','六'];
   private LunarMonths = ['正月','二月','三月','四月','五月','六月','七月','八月','九月','十月','冬月','腊月']
   private lunarDays = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
@@ -18,7 +128,7 @@ struct Index {
   @StorageLink('holidays') private holidays: Holidays = {}
   @StorageLink('solarTerms') private solarTerms: SolarTerms = {}
   private currentDate: Date = new Date()
-  private calendars: Array<calendarManager.Event> = [];
+  @StorageLink('calendars') private calendars: Array<calendarManager.Event> = [];
   private calendar : i18n.Calendar = i18n.getCalendar("zh-Hans", "chinese");
   //页面信息显示相关的状态变量
   @State year: number = this.CurrentDate.getFullYear() ;
@@ -45,12 +155,18 @@ struct Index {
     this.ChoosePre=this.year==this.CurrentDate.getFullYear()&&this.CurrentDate.getMonth()+1==this.months[this.index]?this.CurrentDate.getDate():1
     this.daysIsChoose[this.ChoosePre]=1
   }
+  aboutToDisappear(): void {
+    console.info('模拟器Index aboutToDisappear')
+    this.dialogController = null
+  }
   onPageShow(): void {
     console.info('模拟器Index onPageShow')
     UserCalendarManager.queryEvent(this.year).then((result: Array<calendarManager.Event>)=>{
       this.calendars = result
       this.calendarsList = this.QueryCalendar(this.ChoosePre)
     })
+    this.todoList = this.ToDoItems.filter(item => item.IsDid === 0);
+    this.doneList = this.ToDoItems.filter(item => item.IsDid === 1);
   }
   //天数构建
   private GetDays(year: number, month: number): number[] {
@@ -140,12 +256,16 @@ struct Index {
             .fontWeight(FontWeight.Bold)
             .onClick(()=>{
               console.info('模拟器点击搜索')
-              router.pushUrl({url: 'pages/SearchEvent'})
+              router.pushUrl({url: 'pages/Search'})
             })
-          SymbolGlyph($r('sys.symbol.dot_grid_2x2'))
+          SymbolGlyph($r('sys.symbol.picture'))
             .fontSize(25)
             .fontColor([Color.White])
             .fontWeight(FontWeight.Bold)
+            .onClick(()=>{
+              console.info('模拟器点击背景')
+              router.pushUrl({url: 'pages/Background'})
+            })
         }
         .width('50%')
         .alignItems(VerticalAlign.Center)
@@ -346,6 +466,10 @@ struct Index {
             this.calendarsList = this.calendarsList.filter((e:calendarManager.Event)=>{
               return e.id!=item.id
             })
+            promptAction.showToast({
+              message: '删除日程成功',
+              duration: 2000
+            })
           })
         }
       }
@@ -403,6 +527,7 @@ struct Index {
         .scrollBar(BarState.Off)
         .width('100%')
         .height('100%')
+        .edgeEffect(EdgeEffect.None)
         .alignListItem(ListItemAlign.Start)
         .opacity(this.calendarsList.length==0?0:1)
       }
@@ -494,18 +619,188 @@ struct Index {
         width: { bottom: 1 },
         color: { bottom: Color.Gray },
       })
+      Stack(){
+        List(){
+          ForEach(this.calendarsList, (item:calendarManager.Event)=>{
+            ListItem(){
+              this.ScheduleItem(item)
+            }
+            .width('100%')
+            .height(100)
+          })
+        }
+        .scrollBar(BarState.Off)
+        .width('100%')
+        .height('100%')
+        .edgeEffect(EdgeEffect.None)
+        .alignListItem(ListItemAlign.Start)
+        .opacity(this.calendarsList.length==0?0:1)
+        Column(){
+          SymbolGlyph($r('sys.symbol.calendar_fill'))
+            .fontSize(100)
+            .fontColor([Color.Gray])
+            .fontWeight(FontWeight.Bold)
+          Text('没有日程')
+            .fontSize(15)
+            .fontColor(Color.White)
+            .textAlign(TextAlign.Center)
+          Text('今天要做什么？')
+            .width('100%')
+            .fontSize(35)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+            .textAlign(TextAlign.Center)
+            .margin({ top: '10%' })
+          Text('点击 + 按钮记录一下')
+            .width('100%')
+            .fontSize(20)
+            .fontColor(Color.White)
+            .textAlign(TextAlign.Center)
+            .margin({ top: '5%' })
+        }
+        .alignItems(HorizontalAlign.Center)
+        .justifyContent(FlexAlign.Center)
+        .opacity(this.calendarsList.length==0?0.8:0)
+      }
+      .width('100%')
+      .height('90%')
+      .alignContent(Alignment.Center)
+    }
+    .width('95%')
+    .height('90%')
+    .borderRadius(5)
+    .margin({ top: '5%'})
+    .padding({ top: '2%', bottom: '2%', left: '2%', right: '2%'})
+    .backgroundColor('#55737272')
+    .alignItems(HorizontalAlign.Center)
+    .justifyContent(FlexAlign.Start)
+  }
+  //待办事项Item构建
+  @Builder TodoItem(item:ToDoItemsInfo){
+    Row(){
+      Image($r('app.media.line'))
+        .width(50)
+        .height(50)
+        .fillColor('#ff1d72f1')
+      Marquee({
+        start: true,
+        step: -1,
+        loop: 50,
+        fromStart: true,
+        src:item.content
+      })
+        .width('70%')
+        .height('80%')
+        .fontSize(20)
+        .fontColor(Color.White)
+        .fontWeight(FontWeight.Bold)
+      Radio({value: item?.id?.toString(),group: item?.id?.toString()})
+        .checked(item.IsDid==1)
+        .onChange(async (isChecked:boolean)=>{
+          if (isChecked&&item.IsDid==0) {
+            item.IsDid = 1
+            StoreManager.updateToDoItemsInfo(item, getContext(this))
+            this.doneList.push(item)
+            this.todoList = this.todoList.filter(item => item.IsDid == 0);
+            let formData: CardData = {
+              TodoItemList: this.todoList.map(item => item.content),
+              backgroundNum: this.backgroundNum
+            }
+            let bindData = formBindingData.createFormBindingData(formData);
+            let formId = await PreferencesManager.getFormId(getContext(this))
+            formProvider.updateForm(formId, bindData).then(() => {
+              console.log('模拟器卡片Card updated successfully.');
+            }).catch((error: BusinessError) => {
+              console.error(`模拟器卡片Failed to update card: code is ${error.code},message is ${error.message}`);
+            });
+          }else if(isChecked&&item.IsDid==1){
+            item.IsDid = 0
+            StoreManager.updateToDoItemsInfo(item, getContext(this))
+            this.todoList.push(item)
+            this.doneList = this.doneList.filter(item => item.IsDid == 1);
+            let formData: CardData = {
+              TodoItemList: this.todoList.map(item => item.content),
+              backgroundNum: this.backgroundNum
+            }
+            let bindData = formBindingData.createFormBindingData(formData);
+            let formId = await PreferencesManager.getFormId(getContext(this))
+            formProvider.updateForm(formId, bindData).then(() => {
+              console.log('模拟器卡片Card updated successfully.');
+            }).catch((error: BusinessError) => {
+              console.error(`模拟器卡片Failed to update card: code is ${error.code},message is ${error.message}`);
+            });
+          }
+        })
+    }
+    .width('95%')
+    .height('90%')
+    .borderRadius(10)
+    .backgroundColor('#55737272')
+    .alignItems(VerticalAlign.Center)
+    .justifyContent(FlexAlign.Start)
+  }
+  //待办事项
+  @Builder TodoBuilder(){
+    Column(){
+      Row(){
+        Text(`未完成(${this.todoList.length}条)`)
+          .fontSize(20)
+          .fontColor(Color.White)
+          .height('100%')
+          .textAlign(TextAlign.Start)
+      }
+      .width('100%')
+      .height('5%')
+      .alignItems(VerticalAlign.Center)
+      .justifyContent(FlexAlign.SpaceBetween)
+      .padding({ left: '2%', right: '2%'})
+      .border({
+        width: { bottom: 1 },
+        color: { bottom: Color.Gray },
+      })
       List(){
-        ForEach(this.calendarsList, (item:calendarManager.Event)=>{
+        ForEach(this.todoList, (item:ToDoItemsInfo)=>{
           ListItem(){
-            this.ScheduleItem(item)
+            this.TodoItem(item)
           }
           .width('100%')
-          .height(100)
+          .height(50)
         })
       }
       .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.None)
       .width('100%')
-      .height('90%')
+      .height('40%')
+      .alignListItem(ListItemAlign.Start)
+      Row(){
+        Text(`已完成(${this.doneList.length}条)`)
+          .fontSize(20)
+          .fontColor(Color.White)
+          .height('100%')
+          .textAlign(TextAlign.Start)
+      }
+      .width('100%')
+      .height('5%')
+      .alignItems(VerticalAlign.Center)
+      .justifyContent(FlexAlign.SpaceBetween)
+      .padding({ left: '2%', right: '2%'})
+      .border({
+        width: { bottom: 1 },
+        color: { bottom: Color.Gray },
+      })
+      List(){
+        ForEach(this.doneList, (item:ToDoItemsInfo)=>{
+          ListItem(){
+            this.TodoItem(item)
+          }
+          .width('100%')
+          .height(50)
+        })
+      }
+      .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.None)
+      .width('100%')
+      .height('40%')
       .alignListItem(ListItemAlign.Start)
     }
     .width('95%')
@@ -517,29 +812,16 @@ struct Index {
     .alignItems(HorizontalAlign.Center)
     .justifyContent(FlexAlign.Start)
   }
-  //待办事项
-  @Builder TodoBuilder(){
-    Column(){
-
-    }
-    .width('95%')
-    .height('90%')
-    .borderRadius(5)
-    .margin({ top: '5%'})
-    .padding({ top: '2%', bottom: '2%', left: '2%', right: '2%'})
-    .backgroundColor('#55737272')
-    .alignItems(HorizontalAlign.Center)
-    .justifyContent(FlexAlign.Center)
-  }
   //tabBar构建
   @Builder tabBuilder(index:number) {
-    SymbolGlyph($r(index==0?'sys.symbol.calendar':index==1?'sys.symbol.calendar_badge_clock':'sys.symbol.checkmark_circle'))
+    SymbolGlyph($r(index==0?'sys.symbol.calendar':index==1?'sys.symbol.calendar_badge_clock':'sys.symbol.checkmark_square'))
       .fontSize(30)
       .fontColor([this.choose==index?Color.White:Color.Gray])
       .width(30)
       .height(30)
       .margin({ left: '10%',right: '10%' })
   }
+
   build() {
     Column(){
       this.topBarBuilder()
@@ -573,23 +855,35 @@ struct Index {
         .onChange((index: number)=>{
           animateTo({
             duration: 1000,
-          },() => {
-            this.choose = index
+          }, () => {
+              this.choose = index
           })
         })
         Row(){
           Column(){
             Image($r('app.media.AI'))
-              .width(50)
-              .height(50)
+              .width(45)
+              .height(45)
               .fillColor(Color.White)
+              .onClick(()=>{
+                console.info('模拟器点击AI')
+                router.pushUrl({ url: 'pages/AIChat' });
+              })
             Image($r('app.media.add'))
-              .width(50)
-              .height(50)
+              .width(45)
+              .height(45)
               .fillColor(Color.White)
               .onClick(()=>{
                 console.info('模拟器点击添加日程')
                 router.pushUrl({ url: 'pages/AddEvent' });
+              })
+            Image($r('app.media.square_and_pencil_fill'))
+              .width(45)
+              .height(45)
+              .fillColor(Color.White)
+              .onClick(()=>{
+                console.info('模拟器点击添加待办')
+                this.dialogController?.open()
               })
           }
           .alignItems(HorizontalAlign.Center)
@@ -597,7 +891,7 @@ struct Index {
           .height('100%')
         }
         .width('100%')
-        .height('20%')
+        .height('22%')
         .alignItems(VerticalAlign.Center)
         .justifyContent(FlexAlign.End)
         .padding({ top: '2%', bottom: '2%', left: '10%', right: '10%' })
@@ -609,7 +903,7 @@ struct Index {
     }
     .width('100%')
     .height('100%')
-    .backgroundImage($r('app.media.MyBackground3'))
+    .backgroundImage($r(`app.media.MyBackground${this.backgroundNum}`))
     .backgroundImageSize(ImageSize.Cover)
     .backgroundImagePosition(Alignment.Center)
     .justifyContent(FlexAlign.Start)

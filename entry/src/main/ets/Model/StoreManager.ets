@@ -1,6 +1,6 @@
 import { relationalStore, ValuesBucket } from "@kit.ArkData";
 import { BusinessError } from "@kit.BasicServicesKit";
-import { HolidayInfo, Holidays, SolarTerms, SolarTermsInfo } from "./DataInterface";
+import { HolidayInfo, Holidays, SolarTerms, SolarTermsInfo, ToDoItemsInfo } from "./DataInterface";
 
 
 export class StoreManager{
@@ -24,6 +24,14 @@ CREATE TABLE IF NOT EXISTS SolarTermsInfo (
   pub_date TEXT NOT NULL
 );
 `;
+  private static createToDoItemsInfoTable: string = `
+CREATE TABLE IF NOT EXISTS ToDoItemsInfo (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  content TEXT NOT NULL,
+  IsDid INTEGER NOT NULL
+);
+`;
+
   // 获取数据库对象
   public static async getStore(context:Context) {
     try {
@@ -47,6 +55,12 @@ CREATE TABLE IF NOT EXISTS SolarTermsInfo (
       }catch (err){
         let error: BusinessError = err as BusinessError;
         console.error(`模拟器创建表createSolarTermsInfoTable失败: Code is ${error.code}, message is ${error.message}`);
+      }
+      try {
+        await StoreManager.store.executeSql(StoreManager.createToDoItemsInfoTable);
+      }catch (err){
+        let error: BusinessError = err as BusinessError;
+        console.error(`模拟器创建表createToDoItemsInfoTable失败: Code is ${error.code}, message is ${error.message}`);
       }
       console.log('模拟器数据库对象创建成功');
       return StoreManager.store;
@@ -153,6 +167,61 @@ CREATE TABLE IF NOT EXISTS SolarTermsInfo (
       let error: BusinessError = err as BusinessError;
       console.error(`模拟器获取数据库对象失败: Code is ${error.code}, message is ${error.message}`);
       return false;
+    }
+  }
+  // 获取待办事项信息
+  public static async getToDoItemsInfo(context:Context):Promise<ToDoItemsInfo[]>{
+    let toDoItemsInfo:ToDoItemsInfo[]=[];
+    try{
+      await StoreManager.getStore(context);
+      let predicates=new relationalStore.RdbPredicates('ToDoItemsInfo');
+      let resultSet=await StoreManager.store?.query(predicates);
+      while (resultSet?.goToNextRow()){
+        toDoItemsInfo.push({
+          id:resultSet.getLong(resultSet.getColumnIndex('id')),
+          content:resultSet.getString(resultSet.getColumnIndex('content')),
+          IsDid:resultSet.getLong(resultSet.getColumnIndex('IsDid'))
+        })
+      }
+      console.info('模拟器数据库获取待办事项信息成功，返回数据为:'+JSON.stringify(toDoItemsInfo))
+    }catch (err){
+      let error: BusinessError = err as BusinessError;
+      console.error(`模拟器获取数据库对象失败: Code is ${error.code}, message is ${error.message}`);
+    }
+    return toDoItemsInfo;
+  }
+  // 添加待办事项信息
+  public static async addToDoItemsInfo(toDoItemsInfo:ToDoItemsInfo,context:Context):Promise<void>{
+    try{
+      await StoreManager.getStore(context);
+      try {
+        await StoreManager.store?.insert('ToDoItemsInfo',toDoItemsInfo as ValuesBucket);
+        console.info('模拟器添加待办事项信息成功:'+JSON.stringify(toDoItemsInfo));
+      }catch (err){
+        let error: BusinessError = err as BusinessError;
+        console.error(`模拟器添加待办事项信息失败: Code is ${error.code}, message is ${error.message}`);
+      }
+    }catch (err){
+      let error: BusinessError = err as BusinessError;
+      console.error(`模拟器获取数据库对象失败: Code is ${error.code}, message is ${error.message}`);
+    }
+  }
+  // 更新待办事项信息
+  public static async updateToDoItemsInfo(toDoItemsInfo:ToDoItemsInfo,context:Context):Promise<void>{
+    try{
+      await StoreManager.getStore(context);
+      try {
+        let predicates=new relationalStore.RdbPredicates('ToDoItemsInfo');
+        predicates.equalTo('id',toDoItemsInfo.id);
+        await StoreManager.store?.update(toDoItemsInfo as ValuesBucket,predicates);
+        console.info('模拟器更新待办事项信息成功:'+JSON.stringify(toDoItemsInfo.id))
+      }catch (err){
+        let error: BusinessError = err as BusinessError;
+        console.error(`模拟器更新待办事项信息失败: Code is ${error.code}, message is ${error.message}`);
+      }
+    }catch (err){
+      let error: BusinessError = err as BusinessError;
+      console.error(`模拟器获取数据库对象失败: Code is ${error.code}, message is ${error.message}`);
     }
   }
 }
