@@ -10,7 +10,7 @@
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "Kalender"
     },
     {
       "name": "EntryFormAbility_desc",
@@ -22,11 +22,11 @@
     },
     {
       "name": "widget_desc",
-      "value": "This is a service widget."
+      "value": "查看待办事项"
     },
     {
       "name": "widget_display_name",
-      "value": "widget"
+      "value": "日历"
     }
   ]
 }

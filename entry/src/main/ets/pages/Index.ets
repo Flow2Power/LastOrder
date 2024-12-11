@@ -221,7 +221,7 @@ struct Index {
     let result:Array<calendarManager.Event> = []
     let startTime = new Date(`${this.year}-${this.addZero(this.months[this.index])}-${this.addZero(day)}T00:00:00.000Z`).getTime()
     let endTime = new Date(`${this.year}-${this.addZero(this.months[this.index])}-${this.addZero(day)}T23:59:59.000Z`).getTime()
-    result = this.calendars.filter(item => item.startTime >= startTime && item.endTime <= endTime);
+    result = this.calendars.filter(item => item.startTime > startTime && item.endTime < endTime);
     return result
   }
   //判断是否为节假日

@@ -61,11 +61,10 @@ struct Background {
             Image($r(`app.media.MyBackground${item}`))
               .width('90%')
               .height('90%')
+              .borderRadius(5)
           }
           .width('80%')
           .height('80%')
-          .borderRadius(5)
-          .backgroundColor('#55737272')
           .onClick(() => {
             this.backgroundNum = item
             promptAction.showToast({
@@ -75,8 +74,9 @@ struct Background {
           })
         })
       }
-      .width('95%')
+      .width('100%')
       .height('80%')
+      .backdropBlur(50)
       .barHeight(0)
       .align(Alignment.Start)
       .margin({top:'5%'})

@@ -321,7 +321,7 @@ struct AIChat {
             }
           },
           {
-            value: 'Spark-4-Ultra',
+            value: 'Spark-4.0-Ultra',
             action: ()=>{
               this.robotChoose = 7
               this.MessageList = []
@@ -403,26 +403,22 @@ struct AIChat {
   build() {
     Column(){
       this.topBarBuilder()
-      Scroll(this.scrollerForScroll){
-        Column(){
-          List(){
-            ForEach(this.MessageList, (item:ChatMessage)=>{
-              ListItem(){
-                this.MessageItem(item)
-              }
-            })
-          }
-          .width('100%')
-          .scrollBar(BarState.Off)
-          .edgeEffect(EdgeEffect.None)
+      Scroll(){
+        List({scroller:this.scrollerForScroll}){
+          ForEach(this.MessageList, (item:ChatMessage)=>{
+            ListItem(){
+              this.MessageItem(item)
+            }
+          })
         }
         .width('100%')
+        .scrollBar(BarState.Off)
+        .edgeEffect(EdgeEffect.None)
       }
       .width('100%')
       .height('80%')
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.None)
-      .scrollable(ScrollDirection.Horizontal)
       .align(Alignment.Top)
       this.MessageInputBuilder()
     }
