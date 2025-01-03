@@ -8,7 +8,6 @@ import PreferencesManager from '../Model/PreferencesManager';
 
 export default class EntryFormAbility extends FormExtensionAbility {
   onAddForm(want: Want) {
-    // Called to return a FormBindingData object.
     let formData: CardData = {
       'TodoItemList': [],
       'backgroundNum': 1
